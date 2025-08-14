@@ -1,7 +1,7 @@
 const axios = require("axios");
 const cloudinary = require("cloudinary").v2;
 const streamifier = require("streamifier");
-const { loadUsers, saveUsers } = require("./authController"); // Import helpers
+const User = require("./models/User");
 
 // Cloudinary config
 cloudinary.config({
@@ -15,19 +15,16 @@ exports.sendMessage = async (userId, req, res) => {
         const { numbers, message } = req.body;
 
         if (!numbers || !message) {
-            return res.status(400).json({
-                success: false,
-                message: "Numbers and message are required",
-            });
+            return res.status(400).json({ success: false, message: "Numbers and message are required" });
         }
 
-        let users = loadUsers();
-        let user = users.find(u => u.id === userId);
+        // Get user from DB
+        let user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
 
-        // Reset daily count if new day
+        // Reset daily count if it's a new day
         const today = new Date().toISOString().split("T")[0];
         if (user.lastReset !== today) {
             user.dailyCount = 0;
@@ -42,13 +39,9 @@ exports.sendMessage = async (userId, req, res) => {
             .filter(n => n.length > 0);
 
         if (numberList.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: "No valid numbers found",
-            });
+            return res.status(400).json({ success: false, message: "No valid numbers found" });
         }
 
-        // Check if sending will exceed limit
         if (user.dailyCount + numberList.length > DAILY_LIMIT) {
             return res.status(403).json({
                 success: false,
@@ -56,7 +49,7 @@ exports.sendMessage = async (userId, req, res) => {
             });
         }
 
-        // Upload to Cloudinary directly from memory buffer
+        // Upload image to Cloudinary (if provided)
         let imageUrl = null;
         if (req.file && req.file.buffer) {
             imageUrl = await new Promise((resolve, reject) => {
@@ -71,13 +64,12 @@ exports.sendMessage = async (userId, req, res) => {
             });
         }
 
-        // DealSMS API credentials
+        // API details
         const accessToken = "6899e4303322f";
         const sendMessageUrl = "https://dealsms.in/api/send";
 
         let results = [];
 
-        // Send messages
         for (let num of numberList) {
             const payload = {
                 number: num,
@@ -96,9 +88,9 @@ exports.sendMessage = async (userId, req, res) => {
             }
         }
 
-        // Update daily count
+        // Update daily count in DB
         user.dailyCount += numberList.length;
-        saveUsers(users);
+        await user.save();
 
         return res.json({
             success: true,
@@ -110,10 +102,6 @@ exports.sendMessage = async (userId, req, res) => {
 
     } catch (err) {
         console.error("Error in sendMessage:", err.message);
-        res.status(500).json({
-            success: false,
-            message: "Server error",
-            error: err.message,
-        });
+        res.status(500).json({ success: false, message: "Server error", error: err.message });
     }
 };
