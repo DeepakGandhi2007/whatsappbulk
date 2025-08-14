@@ -1,7 +1,7 @@
 const axios = require("axios");
 const cloudinary = require("cloudinary").v2;
 const streamifier = require("streamifier");
-const User = require("./models/User");
+const User = require("../models/User");
 
 // Cloudinary config
 cloudinary.config({
