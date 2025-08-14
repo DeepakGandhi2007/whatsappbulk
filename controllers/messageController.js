@@ -70,23 +70,38 @@ exports.sendMessage = async (userId, req, res) => {
 
         let results = [];
 
-        for (let num of numberList) {
-            const payload = {
-                number: num,
-                type: imageUrl ? "image" : "text",
-                message: message,
-                media_url: imageUrl || undefined,
-                instance_id: "689B3F66E5B88",
-                access_token: accessToken,
-            };
+       for (let num of numberList) {
+    let payload;
 
-            try {
-                const response = await axios.get(sendMessageUrl, { params: payload });
-                results.push({ number: num, status: "sent", response: response.data });
-            } catch (err) {
-                results.push({ number: num, status: "failed", error: err.message });
-            }
-        }
+    if (imageUrl) {
+        // Image + text
+        payload = {
+            number: num,
+            type: "media",           // API expects "media", not "image"
+            message: message,        // Caption text
+            media_url: imageUrl,
+            instance_id: "689B3F66E5B88",
+            access_token: accessToken,
+        };
+    } else {
+        // Text only
+        payload = {
+            number: num,
+            type: "text",
+            message: message,
+            instance_id: "689B3F66E5B88",
+            access_token: accessToken,
+        };
+    }
+
+    try {
+        const response = await axios.post(sendMessageUrl, payload);
+        results.push({ number: num, status: "sent", response: response.data });
+    } catch (err) {
+        results.push({ number: num, status: "failed", error: err.message });
+    }
+}
+
 
         // Update daily count in DB
         user.dailyCount += numberList.length;
