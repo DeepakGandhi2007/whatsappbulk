@@ -81,7 +81,7 @@ exports.sendMessage = async (userId, req, res) => {
                     type: "media", // API expects "media"
                     message: message,
                     media_url: imageUrl,
-                    instance_id: "689B3F66E5B88",
+                    instance_id: "689B429162A9A",
                     access_token: accessToken,
                 };
             } else {
