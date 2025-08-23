@@ -9,6 +9,7 @@ cloudinary.config({
     api_key: "161231364622252",
     api_secret: "BnZoxrVnKzBc6n6j1KOqltHIs34"
 });
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 exports.sendMessage = async (userId, req, res) => {
     try {
@@ -70,38 +71,41 @@ exports.sendMessage = async (userId, req, res) => {
 
         let results = [];
 
-       for (let num of numberList) {
-    let payload;
+        for (let num of numberList) {
+            let payload;
 
-    if (imageUrl) {
-        // Image + text
-        payload = {
-            number: num,
-            type: "media",           // API expects "media", not "image"
-            message: message,        // Caption text
-            media_url: imageUrl,
-            instance_id: "689B3F66E5B88",
-            access_token: accessToken,
-        };
-    } else {
-        // Text only
-        payload = {
-            number: num,
-            type: "text",
-            message: message,
-            instance_id: "689B429162A9A",
-            access_token: accessToken,
-        };
-    }
+            if (imageUrl) {
+                // Image + text
+                payload = {
+                    number: num,
+                    type: "media", // API expects "media"
+                    message: message,
+                    media_url: imageUrl,
+                    instance_id: "689B3F66E5B88",
+                    access_token: accessToken,
+                };
+            } else {
+                // Text only
+                payload = {
+                    number: num,
+                    type: "text",
+                    message: message,
+                    instance_id: "689B429162A9A",
+                    access_token: accessToken,
+                };
+            }
 
-    try {
-        const response = await axios.post(sendMessageUrl, payload);
-        results.push({ number: num, status: "sent", response: response.data });
-    } catch (err) {
-        results.push({ number: num, status: "failed", error: err.message });
-    }
-}
+            try {
+                const response = await axios.post(sendMessageUrl, payload);
+                results.push({ number: num, status: "sent", response: response.data });
+            } catch (err) {
+                results.push({ number: num, status: "failed", error: err.message });
+            }
 
+            // ✅ Add 1.5–3 sec randomized delay after each message
+            const wait = 1500 + Math.random() * 1500;
+            await delay(wait);
+        }
 
         // Update daily count in DB
         user.dailyCount += numberList.length;
