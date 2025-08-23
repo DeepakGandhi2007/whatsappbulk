@@ -89,7 +89,7 @@ exports.sendMessage = async (userId, req, res) => {
             number: num,
             type: "text",
             message: message,
-            instance_id: "689B3F66E5B88",
+            instance_id: "689B429162A9A",
             access_token: accessToken,
         };
     }
